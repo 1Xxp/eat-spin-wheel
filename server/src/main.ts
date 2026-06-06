@@ -53,7 +53,8 @@ async function autoMigrate() {
     const schemaPath = path.join(__dirname, 'db/schema.sql');
     const altSchemaPath = path.join(__dirname, '../src/db/schema.sql');
     const finalSchemaPath = fs.existsSync(schemaPath) ? schemaPath : altSchemaPath;
-    if (fs.existsSync(schemaPath)) {
+    console.log('  schema路径:', finalSchemaPath, '是否存在:', fs.existsSync(finalSchemaPath));
+    if (fs.existsSync(finalSchemaPath)) {
       const schema = fs.readFileSync(finalSchemaPath, 'utf-8');
       const conn = await pool.getConnection();
       try {
@@ -62,6 +63,8 @@ async function autoMigrate() {
       } finally {
         conn.release();
       }
+    } else {
+      console.warn('  找不到 schema.sql，跳过建表');
     }
   } catch (err: any) {
     console.warn('  自动建表跳过:', err.message);
