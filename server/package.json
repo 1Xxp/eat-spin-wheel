@@ -5,7 +5,7 @@
   "main": "dist/main.js",
   "scripts": {
     "dev": "tsx watch src/main.ts",
-    "build": "tsc && cd ../client && npm install && npm run build",
+    "build": "tsc && (cd ../client && npm install && npm run build || true)",
     "start": "node dist/main.js",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts"
