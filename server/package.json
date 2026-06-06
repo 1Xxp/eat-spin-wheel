@@ -4,8 +4,8 @@
   "description": "每日吃什么大转盘 - 后端服务",
   "main": "src/main.ts",
   "scripts": {
-    "dev": "tsx watch src/main.ts",
-    "start": "tsx src/main.ts",
+    "dev": "node node_modules/tsx/dist/cli.mjs watch src/main.ts",
+    "start": "node node_modules/tsx/dist/cli.mjs src/main.ts",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts"
   },
