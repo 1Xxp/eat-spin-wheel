@@ -49,25 +49,45 @@ if (fs.existsSync(clientDist)) {
 // 自动建表
 async function autoMigrate() {
   try {
-    // 开发和生产都能找到 schema.sql
+    // 先测试数据库连接
+    console.log('  尝试连接数据库...');
+    const testConn = await pool.getConnection();
+    console.log('  数据库连接成功');
+    testConn.release();
+
+    // 查找 schema.sql
     const schemaPath = path.join(__dirname, 'db/schema.sql');
     const altSchemaPath = path.join(__dirname, '../src/db/schema.sql');
     const finalSchemaPath = fs.existsSync(schemaPath) ? schemaPath : altSchemaPath;
-    console.log('  schema路径:', finalSchemaPath, '是否存在:', fs.existsSync(finalSchemaPath));
+    console.log('  schema路径:', finalSchemaPath, '存在:', fs.existsSync(finalSchemaPath));
+
     if (fs.existsSync(finalSchemaPath)) {
       const schema = fs.readFileSync(finalSchemaPath, 'utf-8');
       const conn = await pool.getConnection();
       try {
-        await conn.query(schema);
+        // 逐条执行，每条单独打印错误
+        const statements = schema.split(';').filter(s => s.trim());
+        for (const stmt of statements) {
+          try {
+            await conn.query(stmt);
+          } catch (e: any) {
+            // 表已存在不算错
+            if (!e.message.includes('already exists')) {
+              console.warn('  SQL警告:', e.message.slice(0, 80));
+            }
+          }
+        }
         console.log('  数据库表已就绪');
       } finally {
         conn.release();
       }
     } else {
       console.warn('  找不到 schema.sql，跳过建表');
+      console.warn('  __dirname:', __dirname);
     }
   } catch (err: any) {
-    console.warn('  自动建表跳过:', err.message);
+    console.error('  自动建表失败:', err.message);
+    console.error('  堆栈:', err.stack);
   }
 }
 
@@ -75,7 +95,7 @@ autoMigrate().then(() => {
   app.listen(config.port, () => {
     console.log('');
     console.log(`  🎰 每日吃什么大转盘 服务已启动`);
-    console.log(`  地址: http://localhost:${config.port}`);
+    console.log(`  端口: ${config.port}`);
     console.log(`  环境: ${config.env}`);
     console.log('');
   });
