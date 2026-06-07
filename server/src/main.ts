@@ -25,14 +25,14 @@ app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'eat-spin-wh
 
 // 数据库诊断
 app.get('/health/db', async (_req, res) => {
-  const envKeys = Object.keys(process.env).filter(k => k.includes('SQL') || k.includes('DB') || k.includes('PORT')).sort();
+  const allEnv = Object.keys(process.env).sort();
   const info = {
     host: config.db.host,
     port: config.db.port,
     user: config.db.user,
     database: config.db.database,
-    hasDbUrl: !!process.env.DATABASE_URL,
-    detectedEnv: envKeys,
+    dbUrl: (process.env.DATABASE_URL || '').slice(0, 50),
+    allEnv: allEnv,
   };
   try {
     const conn = await pool.getConnection();
