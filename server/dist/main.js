@@ -23,6 +23,18 @@ app.use((0, cors_1.default)());
 app.use(express_1.default.json());
 // 健康检查
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'eat-spin-wheel' }));
+// 数据库诊断
+app.get('/health/db', async (_req, res) => {
+    try {
+        const conn = await pool_1.default.getConnection();
+        const [tables] = await conn.query("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = ?", [config_1.config.db.database]);
+        conn.release();
+        res.json({ db: 'ok', database: config_1.config.db.database, tables: tables.map((t) => t.TABLE_NAME) });
+    }
+    catch (e) {
+        res.json({ db: 'error', message: e.message, code: e.code });
+    }
+});
 // 公开路由
 app.use('/v1/auth', auth_controller_1.default);
 // 需要认证的路由
