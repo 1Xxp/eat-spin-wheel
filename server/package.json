@@ -5,7 +5,7 @@
   "main": "src/main.ts",
   "scripts": {
     "dev": "node node_modules/tsx/dist/cli.mjs watch src/main.ts",
-    "start": "node node_modules/tsx/dist/cli.mjs src/main.ts",
+    "start": "node dist/main.js",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts"
   },
