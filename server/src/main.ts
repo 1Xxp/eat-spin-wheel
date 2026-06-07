@@ -25,6 +25,13 @@ app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'eat-spin-wh
 
 // 数据库诊断
 app.get('/health/db', async (_req, res) => {
+  const info = {
+    hasDbUrl: !!process.env.DATABASE_URL,
+    host: config.db.host,
+    port: config.db.port,
+    user: config.db.user,
+    database: config.db.database,
+  };
   try {
     const conn = await pool.getConnection();
     const [tables]: any = await conn.query(
@@ -32,9 +39,9 @@ app.get('/health/db', async (_req, res) => {
       [config.db.database]
     );
     conn.release();
-    res.json({ db: 'ok', database: config.db.database, tables: tables.map((t: any) => t.TABLE_NAME) });
+    res.json({ db: 'ok', ...info, tables: tables.map((t: any) => t.TABLE_NAME) });
   } catch (e: any) {
-    res.json({ db: 'error', message: e.message, code: e.code });
+    res.json({ db: 'error', ...info, message: e.message, code: e.code });
   }
 });
 

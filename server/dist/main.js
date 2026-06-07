@@ -25,14 +25,21 @@ app.use(express_1.default.json());
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'eat-spin-wheel' }));
 // 数据库诊断
 app.get('/health/db', async (_req, res) => {
+    const info = {
+        hasDbUrl: !!process.env.DATABASE_URL,
+        host: config_1.config.db.host,
+        port: config_1.config.db.port,
+        user: config_1.config.db.user,
+        database: config_1.config.db.database,
+    };
     try {
         const conn = await pool_1.default.getConnection();
         const [tables] = await conn.query("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = ?", [config_1.config.db.database]);
         conn.release();
-        res.json({ db: 'ok', database: config_1.config.db.database, tables: tables.map((t) => t.TABLE_NAME) });
+        res.json({ db: 'ok', ...info, tables: tables.map((t) => t.TABLE_NAME) });
     }
     catch (e) {
-        res.json({ db: 'error', message: e.message, code: e.code });
+        res.json({ db: 'error', ...info, message: e.message, code: e.code });
     }
 });
 // 公开路由
