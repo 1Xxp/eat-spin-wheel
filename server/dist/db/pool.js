@@ -16,6 +16,8 @@ const pool = promise_1.default.createPool({
     queueLimit: 0,
     charset: 'utf8mb4',
     multipleStatements: true,
+    ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : undefined,
+    connectTimeout: 10000,
 });
 exports.default = pool;
 //# sourceMappingURL=pool.js.map

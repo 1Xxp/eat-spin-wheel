@@ -12,6 +12,8 @@ const pool = mysql.createPool({
   queueLimit: 0,
   charset: 'utf8mb4',
   multipleStatements: true,
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : undefined,
+  connectTimeout: 10000,
 });
 
 export default pool;
