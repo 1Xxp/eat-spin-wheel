@@ -17,6 +17,14 @@ function parseDbUrl(url: string) {
 
 const rawDb = process.env.DATABASE_URL
   ? parseDbUrl(process.env.DATABASE_URL)
+  : process.env.MYSQLHOST || process.env.MYSQL_HOST
+  ? {
+      host: process.env.MYSQLHOST || process.env.MYSQL_HOST || 'localhost',
+      port: parseInt(process.env.MYSQLPORT || process.env.MYSQL_PORT || '3306', 10),
+      user: process.env.MYSQLUSER || process.env.MYSQL_USER || 'root',
+      password: process.env.MYSQLPASSWORD || process.env.MYSQL_PASSWORD || process.env.MYSQL_ROOT_PASSWORD || '',
+      database: process.env.MYSQLDATABASE || process.env.MYSQL_DATABASE || 'railway',
+    }
   : {
       host: process.env.DB_HOST || 'localhost',
       port: parseInt(process.env.DB_PORT || '3306', 10),
