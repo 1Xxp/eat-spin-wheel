@@ -94,7 +94,7 @@ app.use('/v1/food/ai-text', auth_1.authRequired, ai_controller_1.default);
 // 全局错误处理
 app.use(errorHandler_1.errorHandler);
 // 生产环境：托管前端静态文件
-const clientDist = path_1.default.join(__dirname, '../../client/dist');
+const clientDist = path_1.default.join(__dirname, '../public');
 if (fs_1.default.existsSync(clientDist)) {
     app.use(express_1.default.static(clientDist));
     app.get('*', (_req, res) => {

@@ -99,7 +99,7 @@ app.use('/v1/food/ai-text', authRequired, aiRoutes);
 app.use(errorHandler);
 
 // 生产环境：托管前端静态文件
-const clientDist = path.join(__dirname, '../../client/dist');
+const clientDist = path.join(__dirname, '../public');
 if (fs.existsSync(clientDist)) {
   app.use(express.static(clientDist));
   app.get('*', (_req, res) => {
