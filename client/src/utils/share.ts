@@ -1,14 +1,10 @@
 import html2canvas from 'html2canvas';
 
-export async function generateShareImage(
-  emoji: string,
-  dishName: string,
-  aiText: string,
-): Promise<string | null> {
+export async function shareDish(emoji: string, dishName: string, aiText: string): Promise<boolean> {
   const card = document.createElement('div');
   card.style.cssText = `
     position: fixed; left: 0; top: 0;
-    width: 375px; padding: 28px 24px; font-family: 'PingFang SC', sans-serif;
+    width: 375px; padding: 28px 24px; font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
     background: linear-gradient(135deg, #FFF0E6 0%, #FFE4E1 50%, #F0E6FF 100%);
     text-align: center; box-sizing: border-box; z-index: -1;
   `;
@@ -24,47 +20,25 @@ export async function generateShareImage(
   document.body.appendChild(card);
 
   try {
-    const canvas = await html2canvas(card, {
-      scale: 2,
-      backgroundColor: null,
-      useCORS: true,
-      logging: false,
-    });
-    const dataUrl = canvas.toDataURL('image/png', 0.92);
-    return dataUrl;
-  } catch (e) {
-    console.error('生成图片失败:', e);
-    return null;
-  } finally {
+    const canvas = await html2canvas(card, { scale: 2, backgroundColor: null, useCORS: true, logging: false });
     document.body.removeChild(card);
+
+    // 直接触发下载（最可靠）
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${dishName}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }, 'image/png');
+
+    return true;
+  } catch (e) {
+    document.body.removeChild(card);
+    return false;
   }
-}
-
-export async function shareDish(emoji: string, dishName: string, aiText: string): Promise<boolean> {
-  const dataUrl = await generateShareImage(emoji, dishName, aiText);
-  if (!dataUrl) return false;
-
-  // 先转成 Blob
-  const res = await fetch(dataUrl);
-  const blob = await res.blob();
-  const file = new File([blob], `${dishName}.png`, { type: 'image/png' });
-
-  // 尝试系统分享
-  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-    try {
-      await navigator.share({ files: [file], title: `今天吃 ${dishName}！` });
-      return true;
-    } catch (e: any) {
-      if (e.name === 'AbortError') return false;
-    }
-  }
-
-  // 降级：触发下载
-  const a = document.createElement('a');
-  a.href = dataUrl;
-  a.download = `${dishName}.png`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  return true;
 }

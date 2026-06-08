@@ -42,7 +42,7 @@ export default function HomePage({ onLogout, theme, onCycleTheme, themeInfo }: P
 
   useEffect(() => {
     if (state === 'done' && result) {
-      const t = setTimeout(() => setShowResult(true), 3600);
+      const t = setTimeout(() => setShowResult(true), 4000);
       return () => clearTimeout(t);
     }
     setShowResult(false);
