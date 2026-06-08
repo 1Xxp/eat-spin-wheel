@@ -14,6 +14,20 @@ interface Props {
 
 const EMOJI_OPTIONS = ['🍜', '🍛', '🍣', '🍕', '🥗', '🍲', '🥘', '🍝', '🥟', '🍱', '🥩', '🍗'];
 
+function catColor(i: number) {
+  const palettes = [
+    { bg: '#FFF0E6', border: '#FFD4B8', text: '#B0887A', activeBg: '#FFE0CC' },
+    { bg: '#FFF5E6', border: '#FFE0B8', text: '#B08A6A', activeBg: '#FFECD0' },
+    { bg: '#F0FFE6', border: '#C8E8B0', text: '#6B8A5A', activeBg: '#E0FFD0' },
+    { bg: '#E6F5FF', border: '#B8D8F0', text: '#5A7A9A', activeBg: '#D0E8FF' },
+    { bg: '#F8E8FF', border: '#D8C0F0', text: '#7A6A9A', activeBg: '#E8D8FF' },
+    { bg: '#FFE8EC', border: '#F0C0CC', text: '#9A6A7A', activeBg: '#FFD8E0' },
+    { bg: '#E8FFF0', border: '#B8E8CC', text: '#5A8A6A', activeBg: '#D0FFE0' },
+    { bg: '#FFF8E8', border: '#F0E0B8', text: '#9A8A5A', activeBg: '#FFF0D0' },
+  ];
+  return palettes[i % palettes.length];
+}
+
 export default function DishManager({ dishes, categories, onAdd, onDelete, onUpdate, open, onClose }: Props) {
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState('');
@@ -163,16 +177,31 @@ export default function DishManager({ dishes, categories, onAdd, onDelete, onUpd
                       className="w-full h-11 px-4 rounded-xl bg-white border border-brand-200 text-[#5D4037] text-sm placeholder-[#D4B8A8] outline-none focus:border-brand-400 transition-colors"
                       autoFocus
                     />
-                    <select
-                      value={categoryId || ''}
-                      onChange={(e) => setCategoryId(Number(e.target.value))}
-                      className="w-full h-11 px-4 rounded-xl bg-white border border-brand-200 text-[#5D4037] text-sm outline-none"
-                    >
-                      <option value="" disabled>请选择分类</option>
-                      {categories.map((c) => (
-                        <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
-                      ))}
-                    </select>
+                    <div>
+                      <p className="text-[11px] text-[#B0887A] mb-2">选择分类</p>
+                      <div className="flex flex-wrap gap-2">
+                        {categories.map((c, i) => {
+                          const col = catColor(i);
+                          const active = categoryId === c.id;
+                          return (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => setCategoryId(c.id)}
+                              className="px-3 py-2 rounded-xl text-xs font-medium border transition-all active:scale-95"
+                              style={{
+                                backgroundColor: active ? col.activeBg : col.bg,
+                                borderColor: active ? col.text : col.border,
+                                color: col.text,
+                                boxShadow: active ? `0 0 0 2px ${col.text}40` : 'none',
+                              }}
+                            >
+                              {c.icon} {c.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
 
                     {/* Emoji选择 */}
                     <div>
@@ -248,16 +277,27 @@ export default function DishManager({ dishes, categories, onAdd, onDelete, onUpd
                                 className="w-full h-10 px-3 rounded-xl bg-white border border-brand-200 text-[#5D4037] text-sm placeholder-[#D4B8A8] outline-none focus:border-brand-400"
                                 autoFocus
                               />
-                              <select
-                                value={categoryId || ''}
-                                onChange={(e) => setCategoryId(Number(e.target.value))}
-                                className="w-full h-10 px-3 rounded-xl bg-white border border-brand-200 text-[#5D4037] text-sm outline-none"
-                              >
-                                <option value="" disabled>分类</option>
-                                {categories.map((c) => (
-                                  <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
-                                ))}
-                              </select>
+                              <div className="flex flex-wrap gap-1.5">
+                                {categories.map((c, i) => {
+                                  const col = catColor(i);
+                                  const active = categoryId === c.id;
+                                  return (
+                                    <button
+                                      key={c.id} type="button"
+                                      onClick={() => setCategoryId(c.id)}
+                                      className="px-2.5 py-1.5 rounded-lg text-[11px] font-medium border transition-all active:scale-95"
+                                      style={{
+                                        backgroundColor: active ? col.activeBg : col.bg,
+                                        borderColor: active ? col.text : col.border,
+                                        color: col.text,
+                                        boxShadow: active ? `0 0 0 1.5px ${col.text}40` : 'none',
+                                      }}
+                                    >
+                                      {c.icon} {c.name}
+                                    </button>
+                                  );
+                                })}
+                              </div>
                               <div className="flex flex-wrap gap-1">
                                 {EMOJI_OPTIONS.map((e) => (
                                   <button
@@ -327,10 +367,23 @@ export default function DishManager({ dishes, categories, onAdd, onDelete, onUpd
                           {editingId === dish.id ? (
                             <div className="bg-brand-50/50 rounded-2xl p-3 space-y-2.5 border border-brand-100">
                               <input value={name} onChange={(e) => setName(e.target.value)} className="w-full h-10 px-3 rounded-xl bg-white border border-brand-200 text-[#5D4037] text-sm outline-none focus:border-brand-400" autoFocus />
-                              <select value={categoryId || ''} onChange={(e) => setCategoryId(Number(e.target.value))} className="w-full h-10 px-3 rounded-xl bg-white border border-brand-200 text-[#5D4037] text-sm outline-none">
-                                <option value="" disabled>分类</option>
-                                {categories.map((c) => (<option key={c.id} value={c.id}>{c.icon} {c.name}</option>))}
-                              </select>
+                              <div className="flex flex-wrap gap-1.5">
+                                {categories.map((c, i) => {
+                                  const col = catColor(i);
+                                  const active = categoryId === c.id;
+                                  return (
+                                    <button key={c.id} type="button" onClick={() => setCategoryId(c.id)}
+                                      className="px-2.5 py-1.5 rounded-lg text-[11px] font-medium border transition-all active:scale-95"
+                                      style={{
+                                        backgroundColor: active ? col.activeBg : col.bg,
+                                        borderColor: active ? col.text : col.border,
+                                        color: col.text,
+                                        boxShadow: active ? `0 0 0 1.5px ${col.text}40` : 'none',
+                                      }}
+                                    >{c.icon} {c.name}</button>
+                                  );
+                                })}
+                              </div>
                               <div className="flex flex-wrap gap-1">
                                 {EMOJI_OPTIONS.map((e) => (
                                   <button key={e} type="button" onClick={() => setEmoji(e)} className={`w-8 h-8 rounded-lg text-base flex items-center justify-center transition-all active:scale-90 ${emoji === e ? 'bg-brand-400/20 ring-1 ring-brand-400/50' : 'bg-white hover:bg-brand-50'}`}>{e}</button>
