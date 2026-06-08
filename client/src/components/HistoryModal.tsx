@@ -24,12 +24,14 @@ export default function HistoryModal({ open, onClose }: Props) {
   const [clearing, setClearing] = useState(false);
 
   const load = () => {
-    // 优先显示缓存
+    // 优先显示缓存，秒开
+    let hasCache = false;
     try {
       const cached = sessionStorage.getItem('eat_cache_history');
-      if (cached) setList(JSON.parse(cached));
+      if (cached) { setList(JSON.parse(cached)); hasCache = true; }
     } catch {}
-    setLoading(true);
+    // 有缓存时不显示 loading，后台静默刷新
+    if (!hasCache) setLoading(true);
     fetchHistory(1, 50)
       .then((res: any) => {
         const data = res.data?.list || [];
