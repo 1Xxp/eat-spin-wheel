@@ -8,6 +8,9 @@ interface Props {
   onAdd: (name: string, categoryId: number, emoji?: string) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
   onUpdate: (id: number, data: Record<string, any>) => Promise<void>;
+  onAddCategory: (name: string, icon?: string) => Promise<void>;
+  onUpdateCategory: (id: number, data: Record<string, any>) => Promise<void>;
+  onDeleteCategory: (id: number) => Promise<void>;
   open: boolean;
   onClose: () => void;
 }
@@ -28,7 +31,7 @@ function catColor(i: number) {
   return palettes[i % palettes.length];
 }
 
-export default function DishManager({ dishes, categories, onAdd, onDelete, onUpdate, open, onClose }: Props) {
+export default function DishManager({ dishes, categories, onAdd, onDelete, onUpdate, onAddCategory, onUpdateCategory, onDeleteCategory, open, onClose }: Props) {
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState('');
   const [categoryId, setCategoryId] = useState(0);
@@ -36,6 +39,15 @@ export default function DishManager({ dishes, categories, onAdd, onDelete, onUpd
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [editingId, setEditingId] = useState<number | null>(null);
+
+  // 分类管理
+  const [showCatManager, setShowCatManager] = useState(false);
+  const [catForm, setCatForm] = useState(false);
+  const [catName, setCatName] = useState('');
+  const [catIcon, setCatIcon] = useState('📌');
+  const [catError, setCatError] = useState('');
+  const [editingCatId, setEditingCatId] = useState<number | null>(null);
+  const [catFormSubmitting, setCatFormSubmitting] = useState(false);
 
   // categories加载完成后更新默认分类
   useEffect(() => {
@@ -95,6 +107,63 @@ export default function DishManager({ dishes, categories, onAdd, onDelete, onUpd
       setError(msg);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleAddCategory = async () => {
+    if (!catName.trim()) return;
+    setCatError('');
+    setCatFormSubmitting(true);
+    try {
+      await onAddCategory(catName.trim(), catIcon);
+      setCatName('');
+      setCatIcon('📌');
+      setCatForm(false);
+    } catch (e: any) {
+      setCatError(e?.response?.data?.message || e?.message || '创建失败');
+    } finally {
+      setCatFormSubmitting(false);
+    }
+  };
+
+  const handleUpdateCategory = async () => {
+    if (!catName.trim() || !editingCatId) return;
+    setCatError('');
+    setCatFormSubmitting(true);
+    try {
+      await onUpdateCategory(editingCatId, { name: catName.trim(), icon: catIcon });
+      setCatName('');
+      setCatIcon('📌');
+      setEditingCatId(null);
+    } catch (e: any) {
+      setCatError(e?.response?.data?.message || e?.message || '更新失败');
+    } finally {
+      setCatFormSubmitting(false);
+    }
+  };
+
+  const startEditCat = (cat: Category) => {
+    setEditingCatId(cat.id);
+    setCatName(cat.name);
+    setCatIcon(cat.icon);
+    setCatError('');
+    setCatForm(true);
+  };
+
+  const cancelEditCat = () => {
+    setEditingCatId(null);
+    setCatName('');
+    setCatIcon('📌');
+    setCatError('');
+    setCatForm(false);
+  };
+
+  const handleDeleteCat = async (cat: Category) => {
+    if (!window.confirm(`确定删除分类"${cat.name}"？\n(该分类下无菜品才能删除)`)) return;
+    try {
+      await onDeleteCategory(cat.id);
+    } catch (e: any) {
+      alert(e?.response?.data?.message || '删除失败');
     }
   };
 
@@ -250,6 +319,119 @@ export default function DishManager({ dishes, categories, onAdd, onDelete, onUpd
                         {submitting ? '添加中...' : '确认添加'}
                       </button>
                     </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* 分类管理入口 */}
+            {!adding && (
+              <div className="flex-shrink-0 px-5 pb-2">
+                <button
+                  onClick={() => { setShowCatManager(!showCatManager); cancelEditCat(); }}
+                  className={`text-[11px] font-medium transition-colors flex items-center gap-1 ${
+                    showCatManager ? 'text-brand-500' : 'text-[#B0887A]'
+                  }`}
+                >
+                  <span>{showCatManager ? '▾' : '▸'}</span>
+                  <span>分类管理</span>
+                  <span className="text-[#D4B8A8] font-normal">({categories.filter(c => c.is_system === 1).length}系统 + {categories.filter(c => c.is_system === 0).length}自定义)</span>
+                </button>
+              </div>
+            )}
+
+            {/* 分类管理面板 */}
+            <AnimatePresence>
+              {showCatManager && !adding && (
+                <motion.div
+                  className="flex-shrink-0 px-5 pb-3"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                >
+                  <div className="bg-brand-50/30 rounded-2xl p-3 space-y-2 border border-brand-100">
+                    {/* 现有分类列表 */}
+                    {categories.map((cat) => (
+                      <div key={cat.id} className="flex items-center justify-between">
+                        {editingCatId === cat.id ? (
+                          <div className="flex-1 flex items-center gap-2">
+                            <input
+                              value={catIcon}
+                              onChange={(e) => setCatIcon(e.target.value)}
+                              className="w-10 h-8 text-center rounded-lg bg-white border border-brand-200 text-lg outline-none"
+                              maxLength={2}
+                            />
+                            <input
+                              value={catName}
+                              onChange={(e) => setCatName(e.target.value)}
+                              className="flex-1 h-8 px-2.5 rounded-lg bg-white border border-brand-200 text-[#5D4037] text-xs outline-none focus:border-brand-400"
+                              placeholder="分类名"
+                              maxLength={10}
+                              autoFocus
+                            />
+                            <button onClick={handleUpdateCategory} disabled={!catName.trim() || catFormSubmitting} className="text-[10px] px-2 py-1 rounded-lg bg-brand-500 text-white font-semibold disabled:opacity-30">保存</button>
+                            <button onClick={cancelEditCat} className="text-[10px] px-2 py-1 rounded-lg bg-[#F0E6E0] text-[#8D6E63]">取消</button>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm">{cat.icon}</span>
+                              <span className="text-xs text-[#5D4037]">{cat.name}</span>
+                              {cat.is_system === 1 ? (
+                                <span className="text-[9px] text-[#D4B8A8]">🔒</span>
+                              ) : (
+                                <span className="text-[9px] bg-brand-100 text-brand-600 px-1 rounded">自定义</span>
+                              )}
+                            </div>
+                            {cat.is_system === 0 && (
+                              <div className="flex items-center gap-0.5">
+                                <button onClick={() => startEditCat(cat)} className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] text-[#B0887A] active:bg-brand-100">✎</button>
+                                <button onClick={() => handleDeleteCat(cat)} className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] text-[#B0887A] active:bg-red-100 active:text-red-400">✕</button>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    ))}
+
+                    {/* 新增分类表单 */}
+                    {catForm && !editingCatId && (
+                      <div className="flex items-center gap-2 pt-1 border-t border-brand-100">
+                        <input
+                          value={catIcon}
+                          onChange={(e) => setCatIcon(e.target.value)}
+                          className="w-10 h-8 text-center rounded-lg bg-white border border-brand-200 text-lg outline-none"
+                          maxLength={2}
+                          placeholder="📌"
+                        />
+                        <input
+                          value={catName}
+                          onChange={(e) => setCatName(e.target.value)}
+                          className="flex-1 h-8 px-2.5 rounded-lg bg-white border border-brand-200 text-[#5D4037] text-xs outline-none focus:border-brand-400"
+                          placeholder="分类名，如：轻食"
+                          maxLength={10}
+                          autoFocus
+                        />
+                        <button onClick={handleAddCategory} disabled={!catName.trim() || catFormSubmitting} className="text-[10px] px-2.5 py-1 rounded-lg bg-brand-500 text-white font-semibold disabled:opacity-30">
+                          {catFormSubmitting ? '...' : '添加'}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* 错误提示 */}
+                    {catError && (
+                      <p className="text-red-400 text-[10px] text-center">{catError}</p>
+                    )}
+
+                    {/* 添加按钮 */}
+                    {!catForm && (
+                      <button
+                        onClick={() => { setCatForm(true); setCatName(''); setCatIcon('📌'); setCatError(''); }}
+                        className="w-full h-8 rounded-xl border border-dashed border-brand-300 text-[11px] text-[#B0887A] active:bg-brand-50 transition-colors"
+                      >
+                        + 新建分类
+                      </button>
+                    )}
                   </div>
                 </motion.div>
               )}

@@ -9,6 +9,18 @@ export async function fetchCategories() {
   return api.get('/food/categories');
 }
 
+export async function addCategory(name: string, icon?: string) {
+  return api.post('/food/categories', { name, icon });
+}
+
+export async function updateCategory(id: number, data: Record<string, any>) {
+  return api.put(`/food/categories/${id}`, data);
+}
+
+export async function deleteCategory(id: number) {
+  return api.delete(`/food/categories/${id}`);
+}
+
 export async function fetchDishes(categoryId?: number) {
   return api.get('/food/dishes', { params: categoryId ? { category_id: categoryId } : {} });
 }

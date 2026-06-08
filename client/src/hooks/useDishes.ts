@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { fetchDishes, addDish, deleteDish as delDish, updateDish, fetchCategories } from '../api/endpoints';
+import { fetchDishes, addDish, deleteDish as delDish, updateDish, fetchCategories, addCategory, updateCategory, deleteCategory } from '../api/endpoints';
 import type { Dish, Category } from '../api/types';
 
 const CACHE_KEY_D = 'eat_cache_dishes';
@@ -56,5 +56,20 @@ export function useDishes() {
     await load();
   }, [load]);
 
-  return { dishes, categories, loading, add, remove, update, reload: load };
+  const addCat = useCallback(async (name: string, icon?: string) => {
+    await addCategory(name, icon);
+    await load();
+  }, [load]);
+
+  const updateCat = useCallback(async (id: number, data: Record<string, any>) => {
+    await updateCategory(id, data);
+    await load();
+  }, [load]);
+
+  const removeCat = useCallback(async (id: number) => {
+    await deleteCategory(id);
+    await load();
+  }, [load]);
+
+  return { dishes, categories, loading, add, remove, update, addCat, updateCat, removeCat, reload: load };
 }

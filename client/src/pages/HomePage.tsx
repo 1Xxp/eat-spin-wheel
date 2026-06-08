@@ -19,7 +19,7 @@ interface Props {
 
 export default function HomePage({ onLogout, theme, onCycleTheme, themeInfo }: Props) {
   const { state, result, doSpin, reset } = useSpin();
-  const { dishes, categories, add, remove, update, loading } = useDishes();
+  const { dishes, categories, add, remove, update, addCat, updateCat, removeCat, loading } = useDishes();
   const [showResult, setShowResult] = useState(false);
   const [showManager, setShowManager] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -346,6 +346,9 @@ export default function HomePage({ onLogout, theme, onCycleTheme, themeInfo }: P
         onAdd={add}
         onDelete={remove}
         onUpdate={update}
+        onAddCategory={addCat}
+        onUpdateCategory={updateCat}
+        onDeleteCategory={removeCat}
         open={showManager}
         onClose={() => setShowManager(false)}
       />

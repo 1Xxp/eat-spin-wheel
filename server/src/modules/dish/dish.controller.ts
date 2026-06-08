@@ -23,6 +23,103 @@ router.get('/categories', async (req: AuthRequest, res: Response) => {
   }
 });
 
+// POST /v1/food/categories — 创建自定义分类
+router.post('/categories', async (req: AuthRequest, res: Response) => {
+  try {
+    const { name, icon } = req.body;
+    if (!name || !name.trim()) return fail(res, 400, '分类名称不能为空');
+    const trimmedName = name.trim().slice(0, 10);
+
+    // 查一下当前用户已有分类数，防止滥用
+    const [countRows] = await (await import('../../db/pool')).default.execute(
+      'SELECT COUNT(*) AS cnt FROM dish_categories WHERE user_id = ? AND is_deleted = 0',
+      [req.userId!]
+    ) as any;
+    if (countRows[0].cnt >= 10) return fail(res, 400, '自定义分类最多10个');
+
+    // 获取当前用户自定义分类的最大sort_order
+    const [maxRows] = await (await import('../../db/pool')).default.execute(
+      'SELECT MAX(sort_order) AS mx FROM dish_categories WHERE user_id = ? AND is_deleted = 0',
+      [req.userId!]
+    ) as any;
+    const sortOrder = (maxRows[0].mx || 0) + 1;
+
+    const [result] = await (await import('../../db/pool')).default.execute(
+      'INSERT INTO dish_categories (user_id, name, icon, sort_order, is_system) VALUES (?, ?, ?, ?, 0)',
+      [req.userId!, trimmedName, icon || '📌', sortOrder]
+    ) as any;
+
+    return success(res, { id: result.insertId, user_id: req.userId, name: trimmedName, icon: icon || '📌', sort_order: sortOrder, is_system: 0 }, '分类已创建');
+  } catch (err) {
+    console.error(err);
+    return fail(res, 500, '创建分类失败');
+  }
+});
+
+// PUT /v1/food/categories/:id — 修改自定义分类
+router.put('/categories/:id', async (req: AuthRequest, res: Response) => {
+  try {
+    const { name, icon } = req.body;
+    const id = Number(req.params.id);
+
+    // 确保是用户自己的分类且非系统分类
+    const [rows] = await (await import('../../db/pool')).default.execute(
+      'SELECT id FROM dish_categories WHERE id = ? AND user_id = ? AND is_system = 0 AND is_deleted = 0',
+      [id, req.userId!]
+    ) as any;
+    if (rows.length === 0) return fail(res, 403, '只能修改自己创建的分类');
+
+    const updates: string[] = [];
+    const params: any[] = [];
+    if (name && name.trim()) { updates.push('name = ?'); params.push(name.trim().slice(0, 10)); }
+    if (icon) { updates.push('icon = ?'); params.push(icon); }
+    if (updates.length === 0) return fail(res, 400, '无修改内容');
+    params.push(id, req.userId!);
+
+    await (await import('../../db/pool')).default.execute(
+      `UPDATE dish_categories SET ${updates.join(', ')} WHERE id = ? AND user_id = ?`,
+      params
+    );
+
+    return success(res, null, '分类已更新');
+  } catch (err) {
+    console.error(err);
+    return fail(res, 500, '更新分类失败');
+  }
+});
+
+// DELETE /v1/food/categories/:id — 删除自定义分类
+router.delete('/categories/:id', async (req: AuthRequest, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+
+    // 确保是用户自己的分类
+    const [rows] = await (await import('../../db/pool')).default.execute(
+      'SELECT id FROM dish_categories WHERE id = ? AND user_id = ? AND is_system = 0 AND is_deleted = 0',
+      [id, req.userId!]
+    ) as any;
+    if (rows.length === 0) return fail(res, 403, '只能删除自己创建的分类');
+
+    // 检查分类下是否有菜品
+    const [dishRows] = await (await import('../../db/pool')).default.execute(
+      'SELECT COUNT(*) AS cnt FROM user_dishes WHERE category_id = ? AND user_id = ? AND is_deleted = 0',
+      [id, req.userId!]
+    ) as any;
+    if (dishRows[0].cnt > 0) return fail(res, 400, '该分类下还有菜品，请先移动或删除菜品');
+
+    // 软删除
+    await (await import('../../db/pool')).default.execute(
+      'UPDATE dish_categories SET is_deleted = 1 WHERE id = ? AND user_id = ?',
+      [id, req.userId!]
+    );
+
+    return success(res, null, '分类已删除');
+  } catch (err) {
+    console.error(err);
+    return fail(res, 500, '删除分类失败');
+  }
+});
+
 // GET /v1/food/dishes — 菜品列表
 router.get('/dishes', async (req: AuthRequest, res: Response) => {
   try {
