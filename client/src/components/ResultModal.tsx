@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { SpinResult } from '../api/types';
+import { shareDish } from '../utils/share';
 
 interface Props {
   result: SpinResult | null;
@@ -10,6 +12,14 @@ interface Props {
 }
 
 export default function ResultModal({ result, open, onClose, onConfirm, onRetry }: Props) {
+  const [sharing, setSharing] = useState(false);
+
+  const handleShare = async () => {
+    if (!result) return;
+    setSharing(true);
+    await shareDish(result.dish.emoji, result.dish.name, result.ai_text);
+    setSharing(false);
+  };
   if (!result) return null;
 
   return (
@@ -74,12 +84,28 @@ export default function ResultModal({ result, open, onClose, onConfirm, onRetry 
               </p>
             </div>
 
+            {/* 分享按钮 */}
+            <motion.div
+              className="mb-3"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+            >
+              <button
+                onClick={handleShare}
+                disabled={sharing}
+                className="w-full h-10 rounded-2xl bg-brand-50 text-brand-600 text-[13px] font-semibold active:bg-brand-100 transition-colors"
+              >
+                {sharing ? '生成中...' : '📤 分享给朋友'}
+              </button>
+            </motion.div>
+
             {/* 按钮组 */}
             <motion.div
               className="flex gap-3"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
+              transition={{ delay: 0.45 }}
             >
               <button
                 onClick={onConfirm}
