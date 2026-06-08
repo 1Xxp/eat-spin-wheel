@@ -13,11 +13,13 @@ interface Props {
 
 export default function ResultModal({ result, open, onClose, onConfirm, onRetry }: Props) {
   const [sharing, setSharing] = useState(false);
+  const [shared, setShared] = useState(false);
 
   const handleShare = async () => {
     if (!result) return;
     setSharing(true);
-    await shareDish(result.dish.emoji, result.dish.name, result.ai_text);
+    const ok = await shareDish(result.dish.emoji, result.dish.name, result.ai_text);
+    if (ok) { setShared(true); setTimeout(() => setShared(false), 2000); }
     setSharing(false);
   };
   if (!result) return null;
@@ -96,7 +98,7 @@ export default function ResultModal({ result, open, onClose, onConfirm, onRetry 
                 disabled={sharing}
                 className="w-full h-10 rounded-2xl bg-brand-50 text-brand-600 text-[13px] font-semibold active:bg-brand-100 transition-colors"
               >
-                {sharing ? '生成中...' : '📤 分享给朋友'}
+                {sharing ? '生成中...' : shared ? '✅ 已保存' : '📤 分享给朋友'}
               </button>
             </motion.div>
 
