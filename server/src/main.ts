@@ -23,6 +23,44 @@ app.use(express.json());
 // 健康检查
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'eat-spin-wheel' }));
 
+// 种子数据
+app.post('/health/seed', async (_req, res) => {
+  try {
+    const cats = [
+      { name: '夜宵', icon: '🌙', sort: 1 },
+      { name: '减脂', icon: '🥗', sort: 2 },
+      { name: '情侣', icon: '💕', sort: 3 },
+      { name: '一人食', icon: '🍱', sort: 4 },
+      { name: '工作日', icon: '💼', sort: 5 },
+      { name: '周末', icon: '🎉', sort: 6 },
+    ];
+    const dishes: [number, string, string, string[]][] = [
+      [1,'烤串','🍢',['烧烤','重口']],[1,'小龙虾','🦞',['辣','重口','社交']],[1,'泡面','🍜',['快手','碳水']],[1,'炸鸡','🍗',['油炸','高热量']],[1,'螺蛳粉','🍲',['辣','重口']],[1,'关东煮','🍢',['清淡','日式']],
+      [2,'鸡胸肉沙拉','🥗',['高蛋白','低卡']],[2,'水煮西兰花','🥦',['低卡','素食']],[2,'藜麦碗','🥣',['高蛋白','素食']],[2,'三文鱼沙拉','🐟',['高蛋白','日式']],[2,'酸奶水果杯','🍓',['甜','冷食']],[2,'荞麦冷面','🍝',['低卡','快手']],
+      [3,'牛排','🥩',['西餐','高蛋白']],[3,'寿司拼盘','🍣',['日式','精致']],[3,'意大利面','🍝',['西餐','碳水']],[3,'火锅','🫕',['社交','重口']],[3,'披萨','🍕',['西餐','碳水']],[3,'烤鱼','🐠',['辣','社交']],
+      [4,'蛋炒饭','🍳',['快手','碳水']],[4,'黄焖鸡米饭','🐔',['暖胃','中式']],[4,'兰州拉面','🍜',['碳水','快手']],[4,'麻辣烫','🍲',['辣','暖胃']],[4,'煲仔饭','🍚',['广式','碳水']],[4,'沙县小吃','🥟',['快手','平价']],
+      [5,'便当','🍱',['快手','均衡']],[5,'三明治','🥪',['快手','冷食']],[5,'盖浇饭','🍛',['快手','碳水']],[5,'冒菜','🥘',['辣','暖胃']],[5,'米线','🍜',['快手','暖胃']],[5,'叉烧饭','🥓',['广式','高蛋白']],
+      [6,'烤肉','🥩',['烧烤','社交','重口']],[6,'早午餐','🥞',['西餐','精致']],[6,'椰子鸡','🥥',['清淡','暖胃']],[6,'羊蝎子','🐑',['辣','暖胃']],[6,'海鲜大餐','🦀',['高蛋白','精致']],[6,'部队锅','🪖',['韩式','辣','社交']],
+    ];
+    const conn = await pool.getConnection();
+    try {
+      for (const c of cats) {
+        await conn.query('INSERT IGNORE INTO dish_categories (name, icon, sort_order, is_system) VALUES (?, ?, ?, 1)', [c.name, c.icon, c.sort]);
+      }
+      for (const d of dishes) {
+        await conn.query('INSERT IGNORE INTO system_dishes (category_id, name, emoji, tags) VALUES (?, ?, ?, ?)', [d[0], d[1], d[2], JSON.stringify(d[3])]);
+      }
+      conn.release();
+      res.json({ seed: 'ok', categories: cats.length, dishes: dishes.length });
+    } catch (e: any) {
+      conn.release();
+      res.json({ seed: 'error', message: e.message });
+    }
+  } catch (e: any) {
+    res.json({ seed: 'error', message: e.message });
+  }
+});
+
 // 数据库诊断
 app.get('/health/db', async (_req, res) => {
   const allEnv = Object.keys(process.env).sort();
