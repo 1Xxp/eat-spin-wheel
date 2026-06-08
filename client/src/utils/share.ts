@@ -1,17 +1,17 @@
-export async function shareDish(emoji: string, dishName: string, aiText: string): Promise<boolean> {
+export function shareDish(emoji: string, dishName: string, aiText: string): boolean {
   const W = 750; const H = 620;
   const canvas = document.createElement('canvas');
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
   if (!ctx) return false;
 
-  // 背景渐变
+  // 背景
   const grad = ctx.createLinearGradient(0, 0, W, H);
   grad.addColorStop(0, '#FFF0E6');
   grad.addColorStop(0.5, '#FFE4E1');
   grad.addColorStop(1, '#F0E6FF');
   ctx.fillStyle = grad;
-  ctx.beginPath(); ctx.roundRect(0, 0, W, H, 48); ctx.fill();
+  roundFill(ctx, 0, 0, W, H, 48);
 
   // 标题
   ctx.fillStyle = '#B0887A';
@@ -29,43 +29,48 @@ export async function shareDish(emoji: string, dishName: string, aiText: string)
   ctx.fillText(dishName, W / 2, 310);
 
   // 文案背景
-  const textW = 600; const textH = 120;
-  const textX = (W - textW) / 2; const textY = 350;
   ctx.fillStyle = 'rgba(255,255,255,0.7)';
-  ctx.beginPath(); ctx.roundRect(textX, textY, textW, textH, 32); ctx.fill();
+  roundFill(ctx, 75, 350, 600, 120, 32);
 
   // 文案
   ctx.fillStyle = '#E55A77';
   ctx.font = 'bold 32px "PingFang SC", "Microsoft YaHei", sans-serif';
-  const maxW = textW - 60;
   const words = `"${aiText}"`;
-  // 简单折行
-  let line = ''; let y = textY + 55;
+  let line = ''; let y = 405;
   for (const ch of words) {
-    if (ctx.measureText(line + ch).width > maxW) {
-      ctx.fillText(line, W / 2, y);
-      line = ch; y += 42;
-    } else { line += ch; }
+    if (ctx.measureText(line + ch).width > 540) { ctx.fillText(line, W / 2, y); line = ch; y += 42; }
+    else line += ch;
   }
   if (line) ctx.fillText(line, W / 2, y);
 
-  // 底部文字
+  // 底部
   ctx.fillStyle = '#D4B8A8';
   ctx.font = '22px "PingFang SC", "Microsoft YaHei", sans-serif';
   ctx.fillText('— 命运替你做的决定 —', W / 2, 550);
 
-  // 导出下载
-  return new Promise((resolve) => {
-    canvas.toBlob((blob) => {
-      if (!blob) { resolve(false); return; }
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `${dishName}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-      resolve(true);
-    }, 'image/png');
-  });
+  // 导出
+  const url = canvas.toDataURL('image/png');
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${dishName}.png`;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { document.body.removeChild(a); }, 200);
+  return true;
+}
+
+function roundFill(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+  ctx.fill();
 }

@@ -15,12 +15,12 @@ export default function ResultModal({ result, open, onClose, onConfirm, onRetry 
   const [sharing, setSharing] = useState(false);
   const [shared, setShared] = useState(false);
 
-  const handleShare = async () => {
+  const handleShare = () => {
     if (!result) return;
     setSharing(true);
-    const ok = await shareDish(result.dish.emoji, result.dish.name, result.ai_text);
-    if (ok) { setShared(true); setTimeout(() => setShared(false), 2000); }
+    const ok = shareDish(result.dish.emoji, result.dish.name, result.ai_text);
     setSharing(false);
+    if (ok) { setShared(true); setTimeout(() => setShared(false), 2000); }
   };
   if (!result) return null;
 
