@@ -24,9 +24,18 @@ export default function HistoryModal({ open, onClose }: Props) {
   const [clearing, setClearing] = useState(false);
 
   const load = () => {
+    // 优先显示缓存
+    try {
+      const cached = sessionStorage.getItem('eat_cache_history');
+      if (cached) setList(JSON.parse(cached));
+    } catch {}
     setLoading(true);
     fetchHistory(1, 50)
-      .then((res: any) => setList(res.data?.list || []))
+      .then((res: any) => {
+        const data = res.data?.list || [];
+        setList(data);
+        try { sessionStorage.setItem('eat_cache_history', JSON.stringify(data)); } catch {}
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   };
@@ -42,6 +51,7 @@ export default function HistoryModal({ open, onClose }: Props) {
     try {
       await clearHistory();
       setList([]);
+      try { sessionStorage.removeItem('eat_cache_history'); } catch {}
     } catch {}
     setClearing(false);
   };

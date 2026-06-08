@@ -59,6 +59,7 @@ export default function HomePage({ onLogout, theme, onCycleTheme, themeInfo }: P
     try {
       await confirmDish(result.dish_id, result.ai_text, 'wheel');
       loadTodayCount();
+      try { sessionStorage.removeItem('eat_cache_history'); } catch {}
     } catch {}
   };
 
