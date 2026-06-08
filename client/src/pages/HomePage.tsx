@@ -133,7 +133,13 @@ export default function HomePage({ onLogout, theme, onCycleTheme, themeInfo }: P
           animate={state === 'spinning' ? { scale: [1, 1.03, 0.98, 1] } : {}}
           transition={{ duration: 0.6, ease: 'easeInOut' }}
         >
-          <Wheel dishes={dishes} spinning={state === 'spinning'} />
+          {loading ? (
+            <div className="w-[260px] h-[260px] sm:w-[300px] sm:h-[300px] rounded-full bg-white/40 flex items-center justify-center">
+              <span className="text-4xl animate-breathe">🍽️</span>
+            </div>
+          ) : (
+            <Wheel dishes={dishes} spinning={state === 'spinning'} />
+          )}
         </motion.div>
 
         {/* 状态提示 */}
