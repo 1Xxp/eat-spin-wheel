@@ -18,23 +18,30 @@ function parseDbUrl(url) {
         database: u.pathname.replace('/', ''),
     };
 }
-const rawDb = process.env.DATABASE_URL
-    ? parseDbUrl(process.env.DATABASE_URL)
-    : process.env.MYSQLHOST || process.env.MYSQL_HOST
-        ? {
+const rawDb = (() => {
+    // 优先用公开 URL（跨网络可用）
+    const pubUrl = process.env.MYSQL_PUBLIC_URL || process.env.MYSQLPUBLICURL;
+    if (pubUrl)
+        return parseDbUrl(pubUrl);
+    if (process.env.DATABASE_URL)
+        return parseDbUrl(process.env.DATABASE_URL);
+    if (process.env.MYSQLHOST || process.env.MYSQL_HOST) {
+        return {
             host: process.env.MYSQLHOST || process.env.MYSQL_HOST || 'localhost',
             port: parseInt(process.env.MYSQLPORT || process.env.MYSQL_PORT || '3306', 10),
             user: process.env.MYSQLUSER || process.env.MYSQL_USER || 'root',
-            password: process.env.MYSQLPASSWORD || process.env.MYSQL_PASSWORD || process.env.MYSQL_ROOT_PASSWORD || '',
+            password: process.env.MYSQLPASSWORD || process.env.MYSQL_PASSWORD || '',
             database: process.env.MYSQLDATABASE || process.env.MYSQL_DATABASE || 'railway',
-        }
-        : {
-            host: process.env.DB_HOST || 'localhost',
-            port: parseInt(process.env.DB_PORT || '3306', 10),
-            user: process.env.DB_USER || 'root',
-            password: process.env.DB_PASSWORD || '',
-            database: process.env.DB_NAME || 'eat_spin_wheel',
         };
+    }
+    return {
+        host: process.env.DB_HOST || 'localhost',
+        port: parseInt(process.env.DB_PORT || '3306', 10),
+        user: process.env.DB_USER || 'root',
+        password: process.env.DB_PASSWORD || '',
+        database: process.env.DB_NAME || 'eat_spin_wheel',
+    };
+})();
 exports.config = {
     port: parseInt(process.env.PORT || '3001', 10),
     env: process.env.NODE_ENV || 'development',
