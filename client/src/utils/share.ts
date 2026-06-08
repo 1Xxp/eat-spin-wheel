@@ -1,9 +1,9 @@
-export function shareDish(emoji: string, dishName: string, aiText: string): boolean {
+export function shareDish(emoji: string, dishName: string, aiText: string): string | null {
   const W = 750; const H = 620;
   const canvas = document.createElement('canvas');
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
-  if (!ctx) return false;
+  if (!ctx) return null;
 
   // 背景
   const grad = ctx.createLinearGradient(0, 0, W, H);
@@ -48,16 +48,7 @@ export function shareDish(emoji: string, dishName: string, aiText: string): bool
   ctx.font = '22px "PingFang SC", "Microsoft YaHei", sans-serif';
   ctx.fillText('— 命运替你做的决定 —', W / 2, 550);
 
-  // 导出
-  const url = canvas.toDataURL('image/png');
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${dishName}.png`;
-  a.style.display = 'none';
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(() => { document.body.removeChild(a); }, 200);
-  return true;
+  return canvas.toDataURL('image/png');
 }
 
 function roundFill(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {

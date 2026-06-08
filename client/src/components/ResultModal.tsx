@@ -12,23 +12,20 @@ interface Props {
 }
 
 export default function ResultModal({ result, open, onClose, onConfirm, onRetry }: Props) {
-  const [sharing, setSharing] = useState(false);
-  const [shared, setShared] = useState(false);
+  const [shareImg, setShareImg] = useState<string | null>(null);
 
   const handleShare = () => {
     if (!result) return;
-    setSharing(true);
-    const ok = shareDish(result.dish.emoji, result.dish.name, result.ai_text);
-    setSharing(false);
-    if (ok) { setShared(true); setTimeout(() => setShared(false), 2000); }
+    const url = shareDish(result.dish.emoji, result.dish.name, result.ai_text);
+    if (url) setShareImg(url);
   };
+
   if (!result) return null;
 
   return (
     <AnimatePresence>
       {open && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-          {/* 遮罩 */}
           <motion.div
             className="absolute inset-0 bg-[#5D4037]/50 backdrop-blur-sm"
             initial={{ opacity: 0 }}
@@ -36,6 +33,32 @@ export default function ResultModal({ result, open, onClose, onConfirm, onRetry 
             exit={{ opacity: 0 }}
             onClick={onClose}
           />
+
+          {/* 分享图预览 */}
+          <AnimatePresence>
+            {shareImg && (
+              <motion.div
+                className="absolute inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-md p-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShareImg(null)}
+              >
+                <motion.img
+                  src={shareImg}
+                  alt="分享图"
+                  className="max-w-[90vw] max-h-[80vh] rounded-2xl shadow-2xl"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.8, opacity: 0 }}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <p className="absolute bottom-8 text-white/70 text-xs text-center w-full">
+                  长按图片保存 · 点击空白处关闭
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* 卡片 */}
           <motion.div
@@ -45,10 +68,8 @@ export default function ResultModal({ result, open, onClose, onConfirm, onRetry 
             exit={{ y: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
           >
-            {/* 拽手指示 */}
             <div className="sm:hidden w-10 h-1 rounded-full bg-brand-100 mx-auto mb-5" />
 
-            {/* Emoji + 菜名 */}
             <div className="text-center mb-4">
               <motion.div
                 className="text-[72px] mb-2"
@@ -76,7 +97,6 @@ export default function ResultModal({ result, open, onClose, onConfirm, onRetry 
               </motion.p>
             </div>
 
-            {/* AI文案卡片 — 纯 CSS 渐入 */}
             <div
               className="bg-brand-50 rounded-2xl px-4 py-3.5 mb-5 min-h-[52px] flex items-center justify-center text-center border border-brand-100 animate-fadeIn"
               style={{ animationDelay: '0.35s' }}
@@ -86,7 +106,6 @@ export default function ResultModal({ result, open, onClose, onConfirm, onRetry 
               </p>
             </div>
 
-            {/* 分享按钮 */}
             <motion.div
               className="mb-3"
               initial={{ opacity: 0 }}
@@ -95,14 +114,12 @@ export default function ResultModal({ result, open, onClose, onConfirm, onRetry 
             >
               <button
                 onClick={handleShare}
-                disabled={sharing}
                 className="w-full h-10 rounded-2xl bg-brand-50 text-brand-600 text-[13px] font-semibold active:bg-brand-100 transition-colors"
               >
-                {sharing ? '生成中...' : shared ? '✅ 已保存' : '📤 分享给朋友'}
+                📤 生成分享图
               </button>
             </motion.div>
 
-            {/* 按钮组 */}
             <motion.div
               className="flex gap-3"
               initial={{ opacity: 0, y: 10 }}
