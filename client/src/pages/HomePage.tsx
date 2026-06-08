@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Wheel from '../components/Wheel';
 import ResultModal from '../components/ResultModal';
@@ -7,6 +7,8 @@ import HistoryModal from '../components/HistoryModal';
 import { useSpin } from '../hooks/useSpin';
 import { useDishes } from '../hooks/useDishes';
 import { fetchHistory, confirmDish } from '../api/endpoints';
+import { resumeAudio, playTick, playReveal, playConfirm } from '../utils/sound';
+import type { SpinResult } from '../api/types';
 
 interface Props {
   onLogout: () => void;
@@ -23,10 +25,33 @@ export default function HomePage({ onLogout, theme, onCycleTheme, themeInfo }: P
   const [showHistory, setShowHistory] = useState(false);
   const [todayCount, setTodayCount] = useState(0);
   const [ripple, setRipple] = useState<{ x: number; y: number; id: number } | null>(null);
+  const [todayPick, setTodayPick] = useState<SpinResult | null>(null);
   const prevCount = useRef(0);
+  const tickTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const stateRef = useRef(state);
+  const resultRef = useRef(result);
+  stateRef.current = state;
+  resultRef.current = result;
 
-  // 加载今日已抽次数
+  const stopTick = useCallback(() => {
+    if (tickTimer.current) {
+      clearInterval(tickTimer.current);
+      tickTimer.current = null;
+    }
+  }, []);
+
+  // 加载今日已抽次数 + 今日免选
   const loadTodayCount = async () => {
+    // 先从 localStorage 读取今日免选
+    try {
+      const raw = localStorage.getItem('eat_today_pick');
+      if (raw) {
+        const { date, pick } = JSON.parse(raw);
+        const today = new Date().toDateString();
+        if (date === today) setTodayPick(pick);
+        else { localStorage.removeItem('eat_today_pick'); setTodayPick(null); }
+      }
+    } catch {}
     try {
       const res: any = await fetchHistory(1, 50);
       const list = res.data?.list || [];
@@ -37,28 +62,45 @@ export default function HomePage({ onLogout, theme, onCycleTheme, themeInfo }: P
   };
 
   useEffect(() => { loadTodayCount(); }, []);
+  useEffect(() => { return () => stopTick(); }, [stopTick]);
   // 每次抽取完成后刷新计数
   useEffect(() => { if (state === 'done') loadTodayCount(); }, [state]);
 
-  useEffect(() => {
-    if (state === 'done' && result) {
-      const t = setTimeout(() => setShowResult(true), 3000);
-      return () => clearTimeout(t);
+  const handleSpinEnd = useCallback(() => {
+    playReveal();
+    stopTick();
+    if (stateRef.current === 'done' && resultRef.current) {
+      setTimeout(() => setShowResult(true), 300);
     }
-    setShowResult(false);
-  }, [state, result]);
+  }, [stopTick]);
 
   const handleRetry = () => {
     setShowResult(false);
+    setTodayPick(null);
+    try { localStorage.removeItem('eat_today_pick'); } catch {}
     setTimeout(() => doSpin(), 300);
+  };
+
+  const handleClearTodayPick = () => {
+    setTodayPick(null);
+    try { localStorage.removeItem('eat_today_pick'); } catch {}
   };
 
   const handleConfirm = async () => {
     if (!result) return;
     setShowResult(false);
+    playConfirm();
     try {
       await confirmDish(result.dish_id, result.ai_text, 'wheel');
       loadTodayCount();
+      // 保存今日免选到 localStorage
+      try {
+        localStorage.setItem('eat_today_pick', JSON.stringify({
+          date: new Date().toDateString(),
+          pick: result,
+        }));
+        setTodayPick(result);
+      } catch {}
       try { sessionStorage.removeItem('eat_cache_history'); } catch {}
     } catch {}
   };
@@ -68,10 +110,19 @@ export default function HomePage({ onLogout, theme, onCycleTheme, themeInfo }: P
   useEffect(() => { prevCount.current = enabledCount; }, [enabledCount]);
 
   const handleSpin = (e: React.MouseEvent) => {
+    resumeAudio();
     const rect = e.currentTarget.getBoundingClientRect();
     setRipple({ x: e.clientX - rect.left, y: e.clientY - rect.top, id: Date.now() });
     setTimeout(() => setRipple(null), 600);
+    // 重置今日免选
+    setTodayPick(null);
+    try { localStorage.removeItem('eat_today_pick'); } catch {}
     doSpin();
+    // 转动期间播放刻度音
+    stopTick();
+    tickTimer.current = setInterval(() => {
+      playTick();
+    }, 180);
   };
 
   return (
@@ -126,6 +177,34 @@ export default function HomePage({ onLogout, theme, onCycleTheme, themeInfo }: P
         </motion.button>
       </header>
 
+      {/* 今日免选 */}
+      <AnimatePresence>
+        {todayPick && state === 'idle' && !showResult && (
+          <motion.div
+            className="flex-shrink-0 mx-5 mt-2 px-5 py-3.5 rounded-2xl bg-white/70 border border-brand-200/60 shadow-sm"
+            initial={{ opacity: 0, y: -12, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 26 }}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">{todayPick.dish.emoji}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] text-[#B0887A]">今天的命运已定</p>
+                <p className="text-base font-bold text-[#5D4037] truncate">{todayPick.dish.name}</p>
+                <p className="text-xs text-brand-500 truncate mt-0.5">"{todayPick.ai_text}"</p>
+              </div>
+              <button
+                onClick={handleClearTodayPick}
+                className="text-[10px] text-[#B0887A] underline underline-offset-2 decoration-dotted active:text-brand-500 transition-colors shrink-0"
+              >
+                重新抉择
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* 转盘区域 */}
       <div className="flex-1 flex flex-col items-center justify-center px-4 min-h-0">
         {/* 转盘 */}
@@ -139,7 +218,7 @@ export default function HomePage({ onLogout, theme, onCycleTheme, themeInfo }: P
               <span className="text-4xl animate-breathe">🍽️</span>
             </div>
           ) : (
-            <Wheel dishes={dishes} spinning={state === 'spinning'} />
+            <Wheel dishes={dishes} spinning={state === 'spinning'} onSpinEnd={handleSpinEnd} />
           )}
         </motion.div>
 
@@ -155,7 +234,9 @@ export default function HomePage({ onLogout, theme, onCycleTheme, themeInfo }: P
                 exit={{ opacity: 0, y: -4 }}
                 transition={{ duration: 0.25 }}
               >
-                {enabledCount > 0 ? `共 ${enabledCount} 道菜，点击下方按钮开始` : '先添加一些菜品吧～'}
+                {enabledCount > 0
+                  ? (todayPick ? '还想换一个？' : `共 ${enabledCount} 道菜，点击下方按钮开始`)
+                  : '先添加一些菜品吧～'}
               </motion.p>
             )}
             {state === 'spinning' && (
@@ -223,7 +304,7 @@ export default function HomePage({ onLogout, theme, onCycleTheme, themeInfo }: P
             )}
           </AnimatePresence>
           <span className="relative z-10">
-            {state === 'spinning' ? '旋转中...' : state === 'done' ? '🔄  再来一次' : '🎰  开始'}
+            {state === 'spinning' ? '旋转中...' : state === 'done' ? '🔄  再来一次' : todayPick ? '🎰  换一个试试' : '🎰  开始'}
           </span>
         </motion.button>
 

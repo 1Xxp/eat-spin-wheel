@@ -10,9 +10,10 @@ const COLORS = [
 interface Props {
   dishes: Dish[];
   spinning: boolean;
+  onSpinEnd?: () => void;
 }
 
-export default function Wheel({ dishes, spinning }: Props) {
+export default function Wheel({ dishes, spinning, onSpinEnd }: Props) {
   const items = useMemo(() => dishes.filter((d) => d.is_enabled), [dishes]);
   const n = items.length;
   const angle = n > 0 ? 360 / n : 0;
@@ -25,6 +26,7 @@ export default function Wheel({ dishes, spinning }: Props) {
   const R = SIZE / 2 - 12;
 
   const [spinKey, setSpinKey] = useState(0);
+  const [wobble, setWobble] = useState(false);
   const prevSpinning = useRef(false);
   const curDeg = useRef(0);
   const targetDeg = useRef(0);
@@ -32,6 +34,7 @@ export default function Wheel({ dishes, spinning }: Props) {
 
   useEffect(() => {
     if (spinning && !prevSpinning.current) {
+      setWobble(false);
       targetDeg.current = curDeg.current + 1080 + Math.floor(Math.random() * 720);
       setSpinKey(k => k + 1);
     }
@@ -94,7 +97,10 @@ export default function Wheel({ dishes, spinning }: Props) {
       />
 
       {/* 指针 */}
-      <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-20">
+      <div
+        className={`absolute -top-2 left-1/2 -translate-x-1/2 z-20 ${wobble ? 'animate-pointer-wobble' : ''}`}
+        style={{ transformOrigin: '15px 36px' }}
+      >
         <svg width="28" height="32" viewBox="0 0 30 36" style={{ filter: 'drop-shadow(0 2px 3px rgba(255,107,138,0.4))' }}>
           <polygon points="15,36 2,0 28,0" fill="#FF6B8A" stroke="#fff" strokeWidth="2" />
         </svg>
@@ -110,6 +116,11 @@ export default function Wheel({ dishes, spinning }: Props) {
         }}
         onAnimationEnd={() => {
           curDeg.current = endDeg % 360;
+          setWobble(true);
+          setTimeout(() => {
+            setWobble(false);
+            onSpinEnd?.();
+          }, 600);
         }}
       >
         <svg
@@ -155,6 +166,19 @@ export default function Wheel({ dishes, spinning }: Props) {
         @keyframes ${name} {
           0%   { transform: rotate(${startDeg}deg); }
           100% { transform: rotate(${endDeg}deg); }
+        }
+        @keyframes pointer-wobble {
+          0%   { transform: translateX(-50%) rotate(0deg); }
+          15%  { transform: translateX(-50%) rotate(6deg); }
+          30%  { transform: translateX(-50%) rotate(-5deg); }
+          45%  { transform: translateX(-50%) rotate(3deg); }
+          60%  { transform: translateX(-50%) rotate(-2deg); }
+          75%  { transform: translateX(-50%) rotate(1deg); }
+          90%  { transform: translateX(-50%) rotate(-0.5deg); }
+          100% { transform: translateX(-50%) rotate(0deg); }
+        }
+        .animate-pointer-wobble {
+          animation: pointer-wobble 0.6s ease-out forwards;
         }
       `}</style>
     </div>
