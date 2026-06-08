@@ -53,7 +53,7 @@ exports.aiService = {
                     text = await callClaude(dishName, recentDishes, tone);
                 }
                 else if (config_1.config.aiText.provider === 'deepseek' && deepseek) {
-                    text = await callOpenAI(dishName, recentDishes, tone, deepseek);
+                    text = await callOpenAI(dishName, recentDishes, tone, deepseek, config_1.config.deepseek.model);
                 }
                 else if (openai) {
                     text = await callOpenAI(dishName, recentDishes, tone, openai);
@@ -110,12 +110,12 @@ async function callClaude(dishName, recentDishes, tone) {
     const text = msg.content.filter(b => b.type === 'text').map(b => b.text).join('');
     return parseAIResponse(text);
 }
-async function callOpenAI(dishName, recentDishes, tone, client) {
+async function callOpenAI(dishName, recentDishes, tone, client, model) {
     const ai = client || openai;
     if (!ai)
         throw new Error('AI客户端未配置');
     const completion = await ai.chat.completions.create({
-        model: config_1.config.openai.model,
+        model: model || config_1.config.openai.model,
         max_tokens: 120,
         temperature: 0.95,
         messages: [
