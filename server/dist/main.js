@@ -10,6 +10,7 @@ const fs_1 = __importDefault(require("fs"));
 const config_1 = require("./config");
 const errorHandler_1 = require("./middleware/errorHandler");
 const pool_1 = __importDefault(require("./db/pool"));
+const openai_1 = __importDefault(require("openai"));
 // 路由
 const auth_controller_1 = __importDefault(require("./modules/auth/auth.controller"));
 const dish_controller_1 = __importDefault(require("./modules/dish/dish.controller"));
@@ -23,6 +24,23 @@ app.use((0, cors_1.default)());
 app.use(express_1.default.json());
 // 健康检查
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'eat-spin-wheel' }));
+// AI测试
+app.get('/health/ai', async (_req, res) => {
+    try {
+        if (!config_1.config.deepseek.apiKey)
+            return res.json({ ai: 'error', reason: 'DEEPSEEK_API_KEY未设置' });
+        const ds = new openai_1.default({ apiKey: config_1.config.deepseek.apiKey, baseURL: config_1.config.deepseek.baseURL });
+        const completion = await ds.chat.completions.create({
+            model: config_1.config.deepseek.model,
+            max_tokens: 60,
+            messages: [{ role: 'user', content: '说一句中文，不超过20字：今天吃什么？' }],
+        });
+        res.json({ ai: 'ok', text: completion.choices[0]?.message?.content });
+    }
+    catch (e) {
+        res.json({ ai: 'error', message: e.message, code: e.status });
+    }
+});
 // 种子数据
 app.post('/health/seed', async (_req, res) => {
     try {

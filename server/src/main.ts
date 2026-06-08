@@ -5,6 +5,7 @@ import fs from 'fs';
 import { config } from './config';
 import { errorHandler } from './middleware/errorHandler';
 import pool from './db/pool';
+import OpenAI from 'openai';
 
 // 路由
 import authRoutes from './modules/auth/auth.controller';
@@ -22,6 +23,22 @@ app.use(express.json());
 
 // 健康检查
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'eat-spin-wheel' }));
+
+// AI测试
+app.get('/health/ai', async (_req, res) => {
+  try {
+    if (!config.deepseek.apiKey) return res.json({ ai: 'error', reason: 'DEEPSEEK_API_KEY未设置' });
+    const ds = new OpenAI({ apiKey: config.deepseek.apiKey, baseURL: config.deepseek.baseURL });
+    const completion = await ds.chat.completions.create({
+      model: config.deepseek.model,
+      max_tokens: 60,
+      messages: [{ role: 'user', content: '说一句中文，不超过20字：今天吃什么？' }],
+    });
+    res.json({ ai: 'ok', text: completion.choices[0]?.message?.content });
+  } catch (e: any) {
+    res.json({ ai: 'error', message: e.message, code: e.status });
+  }
+});
 
 // 种子数据
 app.post('/health/seed', async (_req, res) => {
