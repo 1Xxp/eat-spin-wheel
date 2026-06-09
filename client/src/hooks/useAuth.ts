@@ -26,7 +26,6 @@ export function useAuth() {
 
   const logout = useCallback(() => {
     localStorage.removeItem('token');
-    localStorage.removeItem('device_id');
     localStorage.removeItem('eat_today_pick');
     try { sessionStorage.clear(); } catch {}
     setToken(null);
